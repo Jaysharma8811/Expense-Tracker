@@ -1,5 +1,6 @@
 import 'package:expense_tracker/model/expenseDataClass.dart';
 import 'package:expense_tracker/widgets/add_expense.dart';
+import 'package:expense_tracker/widgets/chart.dart';
 import 'package:expense_tracker/widgets/expense_list.dart';
 import 'package:flutter/material.dart';
 
@@ -30,23 +31,64 @@ class _ExpenseState extends State<Expense> {
   void _openAddExpenseOverlay() {
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => const AddExpense(),
+      builder: (ctx) => AddExpense(
+        onAddExpense: _addExpense,
+      ),
     );
   }
+
+  void _addExpense(ExpenseDataClass expense) {
+    setState(() {
+      _registerExpenses.add(expense);
+    });
+  }
+
+  void _removeExpense(ExpenseDataClass expense) {
+    final expenseIndex = _registerExpenses.indexOf(expense);
+    setState(() {
+      _registerExpenses.remove(expense);
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Expense deleted.'),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              _registerExpenses.insert(expenseIndex, expense);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    Widget mainContent=const Center(
+      child: Text('No expenses found. Start adding some!'),
+    );
+    if(_registerExpenses.isNotEmpty){
+       mainContent=ExpenseList(
+         expense: _registerExpenses,
+         onRemoveExpense: _removeExpense,
+       );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Tracker'),
         actions: [
-          IconButton(onPressed:_openAddExpenseOverlay, icon: const Icon(Icons.add))
+          IconButton(
+              onPressed: _openAddExpenseOverlay, icon: const Icon(Icons.add))
         ],
       ),
       body: Column(
         children: [
-          const Text('The chart..'),
+          Chart(expenses: _registerExpenses),
           Expanded(
-            child: ExpenseList(expense: _registerExpenses),
+            child:mainContent,
           )
         ],
       ),
